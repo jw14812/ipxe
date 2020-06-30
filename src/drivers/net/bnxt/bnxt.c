@@ -265,8 +265,6 @@ int bnxt_free_rx_iob ( struct bnxt *bp )
 	unsigned int i;
 
 	DBGP ( "%s\n", __func__ );
-	if ( ! ( FLAG_TEST ( bp->flag_hwrm, VALID_RX_IOB ) ) )
-		return STATUS_SUCCESS;
 
 	for ( i = 0; i < bp->rx.buf_cnt; i++ ) {
 		if ( bp->rx.iob[i] ) {
@@ -408,20 +406,23 @@ void bnxt_rx_process ( struct net_device *dev, struct bnxt *bp,
 	u8 drop;
 
 	dump_rx_bd ( rx_cmp, rx_cmp_hi, desc_idx );
-	assert ( !iob );
-	drop = bnxt_rx_drop ( bp, iob, rx_cmp_hi, rx_cmp->len );
-	dbg_rxp ( iob->data, rx_cmp->len, drop );
-	if ( drop )
-		netdev_rx_err ( dev, iob, -EINVAL );
-	else
-		netdev_rx ( dev, iob );
-
-	bp->rx.cnt++;
-	bp->rx.iob[desc_idx] = NULL;
-	bp->rx.iob_cnt--;
-	bnxt_post_rx_buffers ( bp );
-	bnxt_adv_cq_index ( bp, 2 ); /* Rx completion is 2 entries. */
-	dbg_rx_stat ( bp );
+	if ( iob ) {
+		drop = bnxt_rx_drop ( bp, iob, rx_cmp_hi, rx_cmp->len );
+		dbg_rxp ( iob->data, rx_cmp->len, drop );
+		if ( drop )
+			netdev_rx_err ( dev, iob, -EINVAL );
+		else
+			netdev_rx ( dev, iob );
+		bp->rx.cnt++;
+		bp->rx.iob[desc_idx] = NULL;
+		bp->rx.iob_cnt--;
+		bnxt_post_rx_buffers ( bp );
+		bnxt_adv_cq_index ( bp, 2 ); /* Rx completion is 2 entries. */
+		dbg_rx_stat ( bp );
+	} else {
+		bp->rx.iob[desc_idx] = NULL;
+		bp->rx.iob_cnt--;
+	}
 }
 
 static int bnxt_rx_complete ( struct net_device *dev,
@@ -1241,7 +1242,7 @@ static int bnxt_hwrm_backing_store_qcfg ( struct bnxt *bp )
 	struct hwrm_func_backing_store_qcfg_input *req;
 
 	DBGP ( "%s\n", __func__ );
-	if ( !bp->thor )
+	if ( ( !bp->thor ) || ( bp->vf ) )
 		return STATUS_SUCCESS;
 
 	req = ( struct hwrm_func_backing_store_qcfg_input * )bp->hwrm_addr_req;
@@ -1256,7 +1257,7 @@ static int bnxt_hwrm_backing_store_cfg ( struct bnxt *bp )
 	struct hwrm_func_backing_store_cfg_input *req;
 
 	DBGP ( "%s\n", __func__ );
-	if ( !bp->thor )
+	if ( ( !bp->thor ) || ( bp->vf ) )
 		return STATUS_SUCCESS;
 
 	req = ( struct hwrm_func_backing_store_cfg_input * )bp->hwrm_addr_req;
@@ -1381,7 +1382,7 @@ static int bnxt_query_phy_link ( struct bnxt *bp )
 	DBGP ( "%s\n", __func__ );
 	/* Query Link Status */
 	if ( bnxt_hwrm_port_phy_qcfg ( bp, QCFG_PHY_ALL ) != STATUS_SUCCESS ) {
-			return STATUS_FAILURE;
+		return STATUS_FAILURE;
 	}
 
 	if ( bp->link_status == STATUS_LINK_ACTIVE )
@@ -2059,7 +2060,6 @@ static void bnxt_close ( struct net_device *dev )
 	bp->bar0 = bnxt_pci_base ( bp->pdev, PCI_BASE_ADDRESS_0 );
 	bp->bar1 = bnxt_pci_base ( bp->pdev, PCI_BASE_ADDRESS_2 );
 	bp->bar2 = bnxt_pci_base ( bp->pdev, PCI_BASE_ADDRESS_4 );
-
 }
 
 static struct net_device_operations bnxt_netdev_ops = {
@@ -2076,8 +2076,6 @@ static int bnxt_init_one ( struct pci_device *pci )
 	int err = 0;
 
 	DBGP ( "%s\n", __func__ );
-	/* Enable PCI device */
-	adjust_pci_device ( pci );
 
 	/* Allocate network device */
 	netdev = alloc_etherdev ( sizeof ( *bp ) );
@@ -2105,6 +2103,9 @@ static int bnxt_init_one ( struct pci_device *pci )
 
 	/* Get PCI Information */
 	bnxt_get_pci_info ( bp );
+
+	/* Enable PCI device */
+	adjust_pci_device ( pci );
 
 	/* Allocate and Initialise device specific parameters */
 	if ( bnxt_alloc_mem ( bp ) != 0 ) {
@@ -2146,10 +2147,19 @@ static void bnxt_remove_one ( struct pci_device *pci )
 	struct bnxt *bp = netdev_priv ( netdev );
 
 	DBGP ( "%s\n", __func__ );
+	bnxt_free_rx_iob (bp);
+
 	/* Unregister network device */
 	unregister_netdev ( netdev );
 
+	/* Stop network device */
+	netdev_nullify ( netdev );
+
+	/* Drop refernce to network device */
+	netdev_put ( netdev );
+
 	/* Bring down Chip */
+	bnxt_down_nic(bp);
 	bnxt_down_chip(bp);
 
 	/* Free Allocated resource */
@@ -2157,12 +2167,9 @@ static void bnxt_remove_one ( struct pci_device *pci )
 
 	/* iounmap PCI BAR ( s ) */
 	bnxt_down_pci ( bp );
-
-	/* Stop network device */
-	netdev_nullify ( netdev );
-
-	/* Drop refernce to network device */
-	netdev_put ( netdev );
+	bp->bar0 = bnxt_pci_base ( bp->pdev, PCI_BASE_ADDRESS_0 );
+	bp->bar1 = bnxt_pci_base ( bp->pdev, PCI_BASE_ADDRESS_2 );
+	bp->bar2 = bnxt_pci_base ( bp->pdev, PCI_BASE_ADDRESS_4 );
 }
 
 /* Broadcom NXE PCI driver */

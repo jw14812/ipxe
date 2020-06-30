@@ -608,7 +608,8 @@ static int wait_resp ( struct bnxt *bp, u32 tmo, u16 len, const char *func )
 	u16 resp_len = 0;
 	u16 ret = STATUS_TIMEOUT;
 
-	if ( len > bp->hwrm_max_req_len )
+	if ( ( len > bp->hwrm_max_req_len ) ||
+         ( FLAG_TEST (bp->flags, BNXT_FLAG_HWRM_SHORT_CMD_REQ ) ) )
 		short_hwrm_cmd_req ( bp, len );
 	else
 		hwrm_write_req ( bp, req, ( u32 ) ( len / 4 ) );
@@ -661,9 +662,10 @@ static int bnxt_hwrm_ver_get ( struct bnxt *bp )
 		resp->chip_bond_id << 8 |
 		resp->chip_platform_type;
 	bp->chip_num = resp->chip_num;
-	test_if ( ( resp->dev_caps_cfg & SHORT_CMD_SUPPORTED ) &&
-		 ( resp->dev_caps_cfg & SHORT_CMD_REQUIRED ) )
+	test_if (resp->dev_caps_cfg & SHORT_CMD_SUPPORTED )
 		FLAG_SET ( bp->flags, BNXT_FLAG_HWRM_SHORT_CMD_SUPP );
+	test_if (resp->dev_caps_cfg & SHORT_CMD_REQUIRED )
+		FLAG_SET ( bp->flags, BNXT_FLAG_HWRM_SHORT_CMD_REQ );
 	bp->hwrm_max_ext_req_len = resp->max_ext_req_len;
 	if ( bp->chip_num == CHIP_NUM_57500 )
 		bp->thor = 1;

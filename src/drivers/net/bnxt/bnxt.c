@@ -19,7 +19,7 @@ FILE_LICENCE ( GPL2_ONLY );
 static void bnxt_service_cq ( struct net_device *dev );
 static void bnxt_tx_complete ( struct net_device *dev, u16 hw_idx );
 static void bnxt_adv_cq_index ( struct bnxt *bp, u16 cnt );
-static void bnxt_adv_cq_index ( struct bnxt *bp, u16 cnt );
+static void bnxt_adv_nq_index ( struct bnxt *bp, u16 cnt );
 static int bnxt_rx_complete ( struct net_device *dev, struct rx_pkt_cmpl *rx );
 void bnxt_link_evt ( struct bnxt *bp, struct hwrm_async_event_cmpl *evt );
 
@@ -1282,7 +1282,7 @@ static int bnxt_hwrm_queue_qportcfg ( struct bnxt *bp )
 	resp = ( struct hwrm_queue_qportcfg_output * )bp->hwrm_addr_resp;
 	hwrm_init ( bp, ( void * )req, ( u16 )HWRM_QUEUE_QPORTCFG, cmd_len );
 	req->flags   = 0;
-	req->port_id = 0;
+	req->port_id = bp->port_idx;
 	rc = wait_resp ( bp, bp->hwrm_cmd_timeout, cmd_len, __func__ );
 	if ( rc ) {
 		DBGP ( "- %s (  ): Failed\n", __func__ );
@@ -1818,6 +1818,7 @@ hwrm_func_t bring_up_chip[] = {
 	bnxt_hwrm_func_reset_req,	/* HWRM_FUNC_RESET		*/
 	bnxt_hwrm_func_drv_rgtr,	/* HWRM_FUNC_DRV_RGTR		*/
 	bnxt_hwrm_func_qcaps_req,	/* HWRM_FUNC_QCAPS		*/
+	bnxt_hwrm_queue_qportcfg,	/* HWRM_QUEUE_QPORTCFG		*/
 	bnxt_hwrm_backing_store_cfg,	/* HWRM_FUNC_BACKING_STORE_CFG  */
 	bnxt_hwrm_backing_store_qcfg,	/* HWRM_FUNC_BACKING_STORE_QCFG	*/
 	bnxt_hwrm_func_resource_qcaps,	/* HWRM_FUNC_RESOURCE_QCAPS	*/
@@ -1832,7 +1833,6 @@ hwrm_func_t bring_up_chip[] = {
 
 hwrm_func_t bring_up_nic[] = {
 	bnxt_hwrm_stat_ctx_alloc,	/* HWRM_STAT_CTX_ALLOC		*/
-	bnxt_hwrm_queue_qportcfg,	/* HWRM_QUEUE_QPORTCFG		*/
 	bnxt_hwrm_ring_alloc_nq,	/* HWRM_RING_ALLOC - NQ Ring	*/
 	bnxt_hwrm_ring_alloc_cq,	/* HWRM_RING_ALLOC - CQ Ring	*/
 	bnxt_hwrm_ring_alloc_tx,	/* HWRM_RING_ALLOC - TX Ring	*/
@@ -2076,6 +2076,9 @@ static int bnxt_init_one ( struct pci_device *pci )
 	int err = 0;
 
 	DBGP ( "%s\n", __func__ );
+	/* Enable PCI device */
+	adjust_pci_device ( pci );
+
 	/* Allocate network device */
 	netdev = alloc_etherdev ( sizeof ( *bp ) );
 	if ( !netdev ) {
@@ -2099,8 +2102,6 @@ static int bnxt_init_one ( struct pci_device *pci )
 	bp->dev  = netdev;
 	netdev->dev = &pci->dev;
 
-	/* Enable PCI device */
-	adjust_pci_device ( pci );
 
 	/* Get PCI Information */
 	bnxt_get_pci_info ( bp );

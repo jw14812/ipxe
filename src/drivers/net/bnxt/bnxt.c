@@ -379,9 +379,10 @@ u8 bnxt_rx_drop ( struct bnxt *bp, struct io_buffer *iob,
 	}
 	iob_put ( iob, rx_len );
 
-	if ( rx_vlan )
-		bnxt_add_vlan ( iob, rx_vlan );
-
+	if ( rx_vlan ) {
+		if ( bp->vlan_tx )
+			bnxt_add_vlan ( iob, rx_vlan );
+	}
 	bp->rx.good++;
 	return 0;
 }

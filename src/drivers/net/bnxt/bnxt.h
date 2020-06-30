@@ -882,8 +882,8 @@ struct bnxt {
 #define DID_57502_MF_RDMA    0x1803
 #define DID_57508_VF         0x1806
 #define DID_57508_VF_RDMA    0x1807
-#define DID_57508_VF_HV      0x1806
-#define DID_57508_VF_RDMA_HV 0x1807
+#define DID_57508_VF_HV      0x1808
+#define DID_57508_VF_RDMA_HV 0x1809
 /* Stratus Device IDs */
 #define DID_57320_1         0x16F0
 #define DID_57320_2         0x16F1
@@ -993,7 +993,6 @@ static struct pci_device_id bnxt_nics[] = {
 	PCI_ROM(PCI_VID_BCOM, DID_57414_RDMA_MF, "14e4-16ED", "14e4-16ED", 0),
 	PCI_ROM(PCI_VID_BCOM, DID_57416_MF,      "14e4-16EE", "14e4-16EE", 0),
 	PCI_ROM(PCI_VID_BCOM, DID_57416_RDMA_MF, "14e4-16EF", "14e4-16EF", 0),
-
 	PCI_ROM(PCI_VID_BCOM, DID_57320_1,        "14e4-16F0", "14e4-16F0", 0),
 	PCI_ROM(PCI_VID_BCOM, DID_57320_2,        "14e4-16F1", "14e4-16F1", 0),
 	PCI_ROM(PCI_VID_BCOM, DID_57454_MHB,      "14e4-1604", "14e4-1604", 0),
@@ -1003,7 +1002,6 @@ static struct pci_device_id bnxt_nics[] = {
 	PCI_ROM(PCI_VID_BCOM, DID_57454,          "14e4-1614", "14e4-1614", 0),
 	PCI_ROM(PCI_VID_BCOM, DID_58802,          "14e4-D802", "14e4-D802", 0),
 	PCI_ROM(PCI_VID_BCOM, DID_58804,          "14e4-D804", "14e4-D804", 0),
-
 	PCI_ROM(PCI_VID_BCOM, DID_57508,          "14e4-1750", "14e4-1750", 0),
 	PCI_ROM(PCI_VID_BCOM, DID_57508_MF,       "14e4-1802", "14e4-1802", 0),
 	PCI_ROM(PCI_VID_BCOM, DID_57508_MF_RDMA,  "14e4-1805", "14e4-1805", 0),
@@ -1018,8 +1016,6 @@ static struct pci_device_id bnxt_nics[] = {
 	PCI_ROM(PCI_VID_BCOM, DID_57508_VF_HV,    "14e4-1808", "14e4-1808", 0),
 	PCI_ROM(PCI_VID_BCOM,
 		DID_57508_VF_RDMA_HV, "14e4-1809", "14e4-1809", 0),
-
-	PCI_ROM(PCI_VID_BCOM, DID_NXT_5720,       "14e4-165F", "14e4-165F", 0),
 	PCI_ROM(PCI_VID_BCOM, DID_SR2_58812,      "14e4-D812", "14e4-D812", 0),
 	PCI_ROM(PCI_VID_BCOM, DID_SR2_58814,      "14e4-D814", "14e4-D814", 0),
 	PCI_ROM(PCI_VID_BCOM, DID_SR2_58818,      "14e4-D818", "14e4-D818", 0),
@@ -1039,12 +1035,10 @@ static struct pci_device_id bnxt_nics[] = {
 		DID_SR2_58814_HV_RDMA, "14e4-1907", "14e4-1907", 0),
 	PCI_ROM(PCI_VID_BCOM,
 		DID_SR2_58818_HV_RDMA, "14e4-190B", "14e4-190B", 0),
-
 	PCI_ROM(PCI_VID_SR2_VIO, DID_SR2_VIO_NET, "14e4-1041", "14e4-1041", 0),
 	PCI_ROM(PCI_VID_SR2_VIO, DID_SR2_VIO_BLK, "14e4-1042", "14e4-1042", 0),
 	PCI_ROM(PCI_VID_SR2_VIO,
 		DID_SR2_VIO_CONSOLE,  "14e4-1043", "14e4-1043", 0),
-
 };
 
 static u16 bnxt_vf_nics[] = {
